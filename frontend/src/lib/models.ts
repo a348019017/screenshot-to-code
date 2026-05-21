@@ -18,6 +18,8 @@ export enum CodeGenerationModel {
   GEMINI_3_1_PRO_PREVIEW_HIGH = "gemini-3.1-pro-preview (high thinking)",
   GEMINI_3_1_PRO_PREVIEW_MEDIUM = "gemini-3.1-pro-preview (medium thinking)",
   GEMINI_3_1_PRO_PREVIEW_LOW = "gemini-3.1-pro-preview (low thinking)",
+  QWEN_3_5_PLUS = "qwen3.5-plus",
+  CUSTOM_CHAT_MODEL = "custom-chat-model",
 }
 
 // Will generate a static error if a model in the enum above is not in the descriptions
@@ -78,6 +80,14 @@ export const CODE_GENERATION_MODEL_DESCRIPTIONS: {
   },
   "gemini-3.1-pro-preview (low thinking)": {
     name: "Gemini 3.1 Pro (low)",
+    inBeta: true,
+  },
+  "qwen3.5-plus": {
+    name: "Qwen 3.5 Plus",
+    inBeta: false,
+  },
+  "custom-chat-model": {
+    name: "Custom Chat Model",
     inBeta: true,
   },
 };

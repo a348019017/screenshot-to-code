@@ -1,0 +1,13 @@
+services:
+  backend:
+    image: 127.0.0.1:5000/screenshot-to-code/backend:latest
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT:-7001}:${BACKEND_PORT:-7001}"
+    command: uvicorn main:app --host 0.0.0.0 --port ${BACKEND_PORT:-7001}
+
+  frontend:
+    image: 127.0.0.1:5000/screenshot-to-code/frontend:latest
+    ports:
+      - "5173:80"

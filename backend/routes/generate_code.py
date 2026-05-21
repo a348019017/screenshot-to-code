@@ -15,11 +15,14 @@ from config import (
     NUM_VARIANTS_VIDEO,
     OPENAI_API_KEY,
     OPENAI_BASE_URL,
+    OPENAI_CHAT_API_KEY,
+    OPENAI_CHAT_BASE_URL,
     REPLICATE_API_KEY,
 )
 from custom_types import InputMode
 from llm import (
     Llm,
+    get_openai_chat_model_api_names,
 )
 from typing import (
     Any,
@@ -59,6 +62,7 @@ from routes.model_choice_sets import (
     ALL_KEYS_MODELS_TEXT_CREATE,
     ALL_KEYS_MODELS_UPDATE,
     ANTHROPIC_ONLY_MODELS,
+    CHAT_ONLY_MODELS,
     GEMINI_ANTHROPIC_MODELS,
     GEMINI_OPENAI_MODELS,
     GEMINI_ONLY_MODELS,
@@ -231,6 +235,8 @@ class ExtractedParams:
     anthropic_api_key: str | None
     gemini_api_key: str | None
     openai_base_url: str | None
+    openai_chat_api_key: str | None
+    openai_chat_base_url: str | None
     generation_type: Literal["create", "update"]
     prompt: UserTurnInput
     history: List[PromptHistoryMessage]
@@ -285,6 +291,16 @@ class ParameterExtractionStage:
         if not openai_base_url:
             print("Using official OpenAI URL")
 
+        # Chat Completions API key and base URL (with fallback to OpenAI keys)
+        openai_chat_api_key = self._get_from_settings_dialog_or_env(
+            params, "openAiChatApiKey", OPENAI_CHAT_API_KEY
+        ) or openai_api_key
+        openai_chat_base_url: str | None = None
+        if not IS_PROD:
+            openai_chat_base_url = self._get_from_settings_dialog_or_env(
+                params, "openAiChatBaseURL", OPENAI_CHAT_BASE_URL
+            ) or openai_base_url
+
         # Get the image generation flag from the request. Fall back to True if not provided.
         should_generate_images = bool(params.get("isImageGenerationEnabled", True))
 
@@ -338,6 +354,8 @@ class ParameterExtractionStage:
             anthropic_api_key=anthropic_api_key,
             gemini_api_key=gemini_api_key,
             openai_base_url=openai_base_url,
+            openai_chat_api_key=openai_chat_api_key,
+            openai_chat_base_url=openai_chat_base_url,
             generation_type=generation_type,
             prompt=prompt,
             history=history,
@@ -375,6 +393,7 @@ class ModelSelectionStage:
         openai_api_key: str | None,
         anthropic_api_key: str | None,
         gemini_api_key: str | None = None,
+        openai_chat_api_key: str | None = None,
     ) -> List[Llm]:
         """Select appropriate models based on available API keys"""
         try:
@@ -386,6 +405,7 @@ class ModelSelectionStage:
                 openai_api_key,
                 anthropic_api_key,
                 gemini_api_key,
+                openai_chat_api_key,
             )
 
             # Print the variant models (one per line)
@@ -410,6 +430,7 @@ class ModelSelectionStage:
         openai_api_key: str | None,
         anthropic_api_key: str | None,
         gemini_api_key: str | None,
+        openai_chat_api_key: str | None = None,
     ) -> List[Llm]:
         """Simple model cycling that scales with num_variants"""
 
@@ -423,7 +444,7 @@ class ModelSelectionStage:
             return list(VIDEO_VARIANT_MODELS)
 
         # Define models based on available API keys
-        if gemini_api_key and anthropic_api_key and openai_api_key:
+        if gemini_api_key and anthropic_api_key and (openai_api_key or openai_chat_api_key):
             if input_mode == "text" and generation_type == "create":
                 models = list(ALL_KEYS_MODELS_TEXT_CREATE)
             elif generation_type == "update":
@@ -432,14 +453,16 @@ class ModelSelectionStage:
                 models = list(ALL_KEYS_MODELS_DEFAULT)
         elif gemini_api_key and anthropic_api_key:
             models = list(GEMINI_ANTHROPIC_MODELS)
-        elif gemini_api_key and openai_api_key:
+        elif gemini_api_key and (openai_api_key or openai_chat_api_key):
             models = list(GEMINI_OPENAI_MODELS)
-        elif openai_api_key and anthropic_api_key:
+        elif (openai_api_key or openai_chat_api_key) and anthropic_api_key:
             models = list(OPENAI_ANTHROPIC_MODELS)
         elif gemini_api_key:
             models = list(GEMINI_ONLY_MODELS)
         elif anthropic_api_key:
             models = list(ANTHROPIC_ONLY_MODELS)
+        elif openai_chat_api_key:
+            models = list(CHAT_ONLY_MODELS)
         elif openai_api_key:
             models = list(OPENAI_ONLY_MODELS)
         else:
@@ -513,6 +536,9 @@ class AgenticGenerationStage:
         should_generate_images: bool,
         file_state: Dict[str, str] | None,
         option_codes: List[str] | None,
+        openai_chat_api_key: str | None = None,
+        openai_chat_base_url: str | None = None,
+        openai_chat_model_names: List[str] | None = None,
     ):
         self.send_message = send_message
         self.openai_api_key = openai_api_key
@@ -522,6 +548,9 @@ class AgenticGenerationStage:
         self.should_generate_images = should_generate_images
         self.file_state = file_state
         self.option_codes = option_codes or []
+        self.openai_chat_api_key = openai_chat_api_key
+        self.openai_chat_base_url = openai_chat_base_url
+        self.openai_chat_model_names = openai_chat_model_names or []
 
     async def process_variants(
         self,
@@ -569,6 +598,11 @@ class AgenticGenerationStage:
                     event_id,
                 )
 
+            # Pick the chat model name for this variant (cycle through list)
+            chat_api_name = None
+            if self.openai_chat_model_names:
+                chat_api_name = self.openai_chat_model_names[index % len(self.openai_chat_model_names)]
+
             runner = Agent(
                 send_message=send_runner_message,
                 variant_index=index,
@@ -579,6 +613,9 @@ class AgenticGenerationStage:
                 should_generate_images=self.should_generate_images,
                 initial_file_state=self.file_state,
                 option_codes=self.option_codes,
+                openai_chat_api_key=self.openai_chat_api_key,
+                openai_chat_base_url=self.openai_chat_base_url,
+                openai_chat_api_name=chat_api_name,
             )
             completion = await runner.run(model, prompt_messages)
             if completion:
@@ -737,6 +774,7 @@ class CodeGenerationMiddleware(Middleware):
                 openai_api_key=context.extracted_params.openai_api_key,
                 anthropic_api_key=context.extracted_params.anthropic_api_key,
                 gemini_api_key=context.extracted_params.gemini_api_key,
+                openai_chat_api_key=context.extracted_params.openai_chat_api_key,
             )
             if IS_DEBUG_ENABLED:
                 await context.send_message(
@@ -756,6 +794,9 @@ class CodeGenerationMiddleware(Middleware):
                 should_generate_images=context.extracted_params.should_generate_images,
                 file_state=context.extracted_params.file_state,
                 option_codes=context.extracted_params.option_codes,
+                openai_chat_api_key=context.extracted_params.openai_chat_api_key,
+                openai_chat_base_url=context.extracted_params.openai_chat_base_url,
+                openai_chat_model_names=get_openai_chat_model_api_names(),
             )
 
             context.variant_completions = await generation_stage.process_variants(

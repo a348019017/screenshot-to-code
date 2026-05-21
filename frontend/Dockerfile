@@ -1,22 +1,18 @@
-FROM node:22-bullseye-slim
-
-# Set the working directory in the container
+# Stage 1: Build
+FROM node:22-bullseye-slim AS builder
 WORKDIR /app
 
-# Copy package.json and yarn.lock
+# Cache deps
 COPY package.json yarn.lock /app/
-
-# Set the environment variable to skip Puppeteer download
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-
-# Install dependencies
 RUN yarn install
 
-# Copy the current directory contents into the container at /app
+# Build
 COPY ./ /app/
+RUN yarn build
 
-# Expose port 5173 to access the server
-EXPOSE 5173
-
-# Command to run the application
-CMD ["yarn", "dev", "--host", "0.0.0.0"]
+# Stage 2: Serve with nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

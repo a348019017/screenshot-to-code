@@ -159,6 +159,52 @@ function SettingsTab({ settings, setSettings, appTheme, setAppTheme }: Props) {
 
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                  Chat API Key
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                  For Chat Completions compatible models (e.g. Qwen, DeepSeek, GLM).
+                  Falls back to OpenAI key if not set.
+                </p>
+                <Input
+                  id="chat-api-key"
+                  className="mt-2"
+                  placeholder="Chat API key"
+                  value={settings.openAiChatApiKey || ""}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      openAiChatApiKey: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {!IS_RUNNING_ON_CLOUD && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                    Chat Base URL (optional)
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                    Base URL for Chat Completions compatible API endpoint.
+                    Falls back to OpenAI Base URL if not set.
+                  </p>
+                  <Input
+                    id="chat-base-url"
+                    className="mt-2"
+                    placeholder="Chat Base URL"
+                    value={settings.openAiChatBaseURL || ""}
+                    onChange={(e) =>
+                      setSettings((s) => ({
+                        ...s,
+                        openAiChatBaseURL: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
                   Anthropic API key
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">

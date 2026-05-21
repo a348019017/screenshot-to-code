@@ -87,6 +87,8 @@ function App() {
     {
       openAiApiKey: null,
       openAiBaseURL: null,
+      openAiChatApiKey: null,
+      openAiChatBaseURL: null,
       anthropicApiKey: null,
       geminiApiKey: null,
       screenshotOneApiKey: null,

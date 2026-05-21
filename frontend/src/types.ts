@@ -15,6 +15,8 @@ export enum AppTheme {
 export interface Settings {
   openAiApiKey: string | null;
   openAiBaseURL: string | null;
+  openAiChatApiKey: string | null;
+  openAiChatBaseURL: string | null;
   screenshotOneApiKey: string | null;
   isImageGenerationEnabled: boolean;
   editorTheme: EditorTheme;

@@ -9,8 +9,9 @@ from agent.providers.anthropic import AnthropicProviderSession, serialize_anthro
 from agent.providers.base import ProviderSession
 from agent.providers.gemini import GeminiProviderSession, serialize_gemini_tools
 from agent.providers.openai import OpenAIProviderSession, serialize_openai_tools
+from agent.providers.openai_chat import OpenAIChatProviderSession, serialize_openai_chat_tools
 from agent.tools import canonical_tool_definitions
-from llm import ANTHROPIC_MODELS, GEMINI_MODELS, OPENAI_MODELS, Llm
+from llm import ANTHROPIC_MODELS, GEMINI_MODELS, OPENAI_CHAT_MODELS, OPENAI_MODELS, Llm
 
 
 def create_provider_session(
@@ -21,10 +22,25 @@ def create_provider_session(
     openai_base_url: Optional[str],
     anthropic_api_key: Optional[str],
     gemini_api_key: Optional[str],
+    openai_chat_api_key: Optional[str] = None,
+    openai_chat_base_url: Optional[str] = None,
+    openai_chat_api_name: Optional[str] = None,
 ) -> ProviderSession:
     canonical_tools = canonical_tool_definitions(
         image_generation_enabled=should_generate_images
     )
+
+    if model in OPENAI_CHAT_MODELS:
+        if not openai_chat_api_key:
+            raise Exception("Chat API key is missing. Set OPENAI_CHAT_API_KEY in .env or in the settings dialog.")
+        client = AsyncOpenAI(api_key=openai_chat_api_key, base_url=openai_chat_base_url)
+        return OpenAIChatProviderSession(
+            client=client,
+            model=model,
+            prompt_messages=prompt_messages,
+            tools=serialize_openai_chat_tools(canonical_tools),
+            api_name=openai_chat_api_name,
+        )
 
     if model in OPENAI_MODELS:
         if not openai_api_key:

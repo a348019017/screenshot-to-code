@@ -63,6 +63,10 @@ ANTHROPIC_ONLY_MODELS = (
     Llm.CLAUDE_SONNET_4_6,
 )
 OPENAI_ONLY_MODELS = (
-    Llm.GPT_5_2_CODEX_HIGH,
-    Llm.GPT_5_2_CODEX_MEDIUM,
+    Llm.QWEN_3_5_PLUS,
+)
+
+# Chat Completions compatible models (3rd-party LLMs)
+CHAT_ONLY_MODELS = (
+    Llm.CUSTOM_CHAT_MODEL,
 )

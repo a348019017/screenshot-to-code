@@ -34,6 +34,9 @@ class AgentEngine:
         should_generate_images: bool,
         initial_file_state: Optional[Dict[str, str]] = None,
         option_codes: Optional[List[str]] = None,
+        openai_chat_api_key: Optional[str] = None,
+        openai_chat_base_url: Optional[str] = None,
+        openai_chat_api_name: Optional[str] = None,
     ):
         self.send_message = send_message
         self.variant_index = variant_index
@@ -42,6 +45,9 @@ class AgentEngine:
         self.anthropic_api_key = anthropic_api_key
         self.gemini_api_key = gemini_api_key
         self.should_generate_images = should_generate_images
+        self.openai_chat_api_key = openai_chat_api_key
+        self.openai_chat_base_url = openai_chat_base_url
+        self.openai_chat_api_name = openai_chat_api_name
 
         self.file_state = AgentFileState()
         if initial_file_state and initial_file_state.get("content"):
@@ -236,6 +242,9 @@ class AgentEngine:
             openai_base_url=self.openai_base_url,
             anthropic_api_key=self.anthropic_api_key,
             gemini_api_key=self.gemini_api_key,
+            openai_chat_api_key=self.openai_chat_api_key,
+            openai_chat_base_url=self.openai_chat_base_url,
+            openai_chat_api_name=self.openai_chat_api_name,
         )
         try:
             return await self._run_with_session(session)
